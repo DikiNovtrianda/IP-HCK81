@@ -19,4 +19,24 @@ module.exports = class userController {
             res.status(500).json({ message: 'DEI' });
         }
     }
+
+    static async login(req, res, next) {
+        try {
+            const { username, password } = req.body;
+            if (!username || !password) {
+                return res.status(400).json({ message: 'Username or Password is empty!' });
+            }
+            let user = await User.findOne({
+                where: { username }
+            })
+            if (!user || !comparePass(password, user.password)) {
+                return res.status(401).json({ message: 'Invalid Username/Password!' });
+            }
+            let token = signToken({ id: user.id });
+            res.status(200).json({ token });
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ message: 'DEI' });
+        }
+    }
 }
