@@ -92,4 +92,22 @@ module.exports = class wishlistController {
             next(error);
         }
     }
+
+    static async addComment(req, res, next) {
+        try {
+            const { userId, comment, rating } = req.body
+            const { gameId } = req.params
+            let findComment = await Wishlist.findOne({ where: { userId, gameId } })
+            if (findComment) {
+                throw {
+                    name: "BadRequest",
+                    message: "Comment not found!"
+                }
+            }
+            await Wishlist.update({ comment, rating }, { where: { userId, gameId } })
+            res.status(200).json({ message: "Comment added!" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
