@@ -11,12 +11,9 @@ module.exports = class userController {
                 email,
                 password
             })
-            console.log('>>>',status);
-            
             res.status(201).json({ username: status.username, email: status.email });
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ message: 'DEI' });
+            next(error);
         }
     }
 
@@ -24,19 +21,24 @@ module.exports = class userController {
         try {
             const { username, password } = req.body;
             if (!username || !password) {
-                return res.status(400).json({ message: 'Username or Password is empty!' });
+                throw {
+                    name: "BadRequest",
+                    message: "Username or Password is empty!"
+                }
             }
             let user = await User.findOne({
                 where: { username }
             })
             if (!user || !comparePass(password, user.password)) {
-                return res.status(401).json({ message: 'Invalid Username/Password!' });
+                throw {
+                    name: "Unauthorized",
+                    message: "Invalid Username/Password!"
+                }
             }
             let token = signToken({ id: user.id });
             res.status(200).json({ token });
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ message: 'DEI' });
+            next(error);
         }
     }
 }
