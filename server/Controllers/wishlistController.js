@@ -1,6 +1,22 @@
 const { Wishlist, Game } = require('../models');
 
 module.exports = class wishlistController {
+    static async getWishlist(req, res, next) {
+        try {
+            const { userId } = req.body
+            let findWishlist = await Wishlist.findOne({ where: { userId, gameId } })
+            if (findWishlist) {
+                throw {
+                    name: "NotFound",
+                    message: "Wishlist not found!"
+                }
+            }
+            res.status(200).json(findWishlist);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async createWishlist(req, res, next) {
         try {
             const { userId } = req.body
