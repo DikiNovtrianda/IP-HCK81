@@ -1,6 +1,7 @@
 'use strict';
 const {
-  Model
+  Model,
+  Op
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Game extends Model {
@@ -11,6 +12,32 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Game.hasMany(models.Wishlist, { foreignKey: 'gameId' })
+    }
+
+    static getPublicGames({ page, limit, search, sort, order, filter }) {
+      console.log(page, limit, search, sort, order, filter);
+      
+      let option = {
+        where: {}
+      }
+      if (search) {
+        option.where.name = {
+          [Op.iLike]: `%${search}%`
+        }
+      }
+      if (sort) {
+        option.order = [[sort, order]]
+      }
+      if (filter) {
+        option.where.genre1 = filter
+      }
+      option.limit = limit
+      option.offset = !page ? 0 : limit * (page - 1)
+
+      console.log(option);
+      
+
+      return this.findAndCountAll(option)
     }
   }
   Game.init({
