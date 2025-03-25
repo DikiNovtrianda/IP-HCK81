@@ -26,6 +26,31 @@ module.exports = class wishlistController {
         }
     }
 
+    static async deleteWishlist(req, res, next) {
+        try {
+            const { userId } = req.body
+            const { gameId } = req.params
+            let findGame = await Game.findOne({ where: { id: gameId } })
+            if (!findGame) {
+                throw {
+                    name: "NotFound",
+                    message: "Game not found!"
+                }
+            }
+            let findComment = await Wishlist.findOne({ where: { userId, gameId } })
+            if (findComment) {
+                throw {
+                    name: "NotFound",
+                    message: "Wishlist not found!"
+                }
+            }
+            await Wishlist.destroy({ where: { userId, gameId } })
+            res.status(200).json({ message: "Wishlist deleted!" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async boughtWishlist(req, res, next) {
         try {
             const { userId } = req.body
@@ -44,7 +69,6 @@ module.exports = class wishlistController {
                     message: "Game already bought!"
                 }
             }
-
             await Wishlist.update({ status: 'Bought' }, { where: { userId, gameId } })
             res.status(200).json({ message: "Game library added!" });
         } catch (error) {
