@@ -1,18 +1,21 @@
 'use strict';
 
 const axios = require('axios');
+require('dotenv').config();
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
     const key = process.env.GIANTBOMB_API_KEY;
+    console.log('Calling GUID list...\nhttps://www.giantbomb.com/api/games/?api_key=' + key + '&format=json&offset=40000');
     const response = await axios.get('https://www.giantbomb.com/api/games/?api_key=' + key + '&format=json&offset=40000');
     let guidList = response.data.results.map(game => game.guid);
     let gameData = await Promise.all(guidList.map(async (guid) => {
+      console.log(`taking data from ${guid}...`);
       const itemResponse = await axios.get(`https://www.giantbomb.com/api/game/${guid}/?api_key=` + key + '&format=json');
       return {
         name: itemResponse.data.results.name,
-        description: itemResponse.data.results.description,
+        description: itemResponse.data.results.description && itemResponse.data.results.description != null ? itemResponse.data.results.description.slice(0, 250) : 'null',
         image: itemResponse.data.results.image.original_url,
         platform1: itemResponse.data.results.platforms && itemResponse.data.results.platforms.length > 0 ? itemResponse.data.results.platforms[0].name : 'null',
         platform2: itemResponse.data.results.platforms && itemResponse.data.results.platforms.length > 1 ? itemResponse.data.results.platforms[1].name : 'null',
@@ -32,6 +35,7 @@ module.exports = {
         createdAt: new Date()
       };
     }));
+    console.log('Inserting game data...');
     await queryInterface.bulkInsert('Games', gameData, {});
   },
 

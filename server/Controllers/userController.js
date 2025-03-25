@@ -1,4 +1,4 @@
-const { User, Wishlist } = require('../models');
+const { User } = require('../models');
 const { comparePass } = require('../helpers/bcrypt');
 const { signToken } = require('../helpers/jwt');
 
@@ -6,11 +6,7 @@ module.exports = class userController {
     static async register(req, res, next) {
         try {
             const { username, email, password } = req.body;
-            let status = await User.create({
-                username,
-                email,
-                password
-            })
+            let status = await User.create({ username, email, password })
             res.status(201).json({ username: status.username, email: status.email });
         } catch (error) {
             next(error);
