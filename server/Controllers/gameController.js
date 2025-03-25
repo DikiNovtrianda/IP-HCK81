@@ -1,5 +1,8 @@
+const axios = require('axios');
+const xml2js = require('xml2js');
+
 module.exports = class gameController {
-    static home(req, res, next) {
-        res.send('Welcome to Game Page');
+    static async getGames(req, res, next) {
+
     }
 }
