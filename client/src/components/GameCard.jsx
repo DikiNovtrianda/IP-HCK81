@@ -2,7 +2,11 @@ import { useNavigate } from "react-router"
 
 export default function GameCard({ data }) {
     const showGenre = (data) => {
-        if (data.genre2 == 'null') {
+        if (data.genre1 == 'null') {
+            return (
+                <span className="badge bg-danger me-1">none</span>
+            )
+        } else if (data.genre2 == 'null') {
             return (
                 <span className="badge bg-primary me-1">{data.genre1}</span>
             )

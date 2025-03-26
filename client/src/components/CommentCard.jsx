@@ -1,5 +1,10 @@
-export default function CommentCard() {
+import { useEffect } from "react";
 
+export default function CommentCard({comment}) {
+    useEffect(() => {
+        console.log(comment);
+    }, [])
+    
     const commentSetting = () => {
         if (localStorage.getItem('bearer_token')) {
             return (
@@ -20,11 +25,13 @@ export default function CommentCard() {
     return (
         <>
             <div className="col-md-10 border border-secondary p-3 rounded my-3">
-                Name
+                {comment.User.username}
                 <hr />
-                Rating : 0 
+                Rating : <span className="text-warning-emphasis">{comment.rating}</span>
                 <br />
-                Comments
+                Comments : 
+                <br />
+                <div className="p-3 border rounded" style={{ backgroundColor: `#fefae0` }}>{comment.comment}</div>
                 <br />
                 {/* need authorization */}
                 {commentSetting()}

@@ -18,7 +18,8 @@ module.exports = (sequelize, DataTypes) => {
     userId: DataTypes.INTEGER,
     gameId: DataTypes.INTEGER,
     status: DataTypes.STRING,
-    comment: DataTypes.STRING,
+    isComment: DataTypes.BOOLEAN,
+    comment: DataTypes.TEXT,
     rating: DataTypes.INTEGER
   }, {
     sequelize,

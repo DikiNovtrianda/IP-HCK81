@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import { phase2IP } from "../../helpers/http-client";
 import { useNavigate } from "react-router";
@@ -20,6 +20,36 @@ export default function Login() {
             console.log(error);
         }
     };
+
+    async function handleCredentialResponse(response) {
+        try {
+            console.log('response :', response);
+            console.log('start handle credential response');
+            const { data } = await phase2IP.post(`/google-login`, {
+                googleToken: response.credential
+            });
+            console.log('turn data into bearer token');
+            localStorage.setItem('bearer_token', 'Bearer ' + data.token);
+            console.log('login complete');
+            navigate('/');
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        // window.onload = function () {
+            google.accounts.id.initialize({
+              client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+              callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+              document.getElementById("google-btn"),
+              { theme: "outline", size: "large" }  // customization attributes
+            );
+            // google.accounts.id.prompt(); // also display the One Tap dialog
+        //   }
+    }, []);
 
     return (
         <>
@@ -77,13 +107,11 @@ export default function Login() {
                                     <p className="small fw-bolder mt-2 pt-1 mb-0">
                                         Or sign in with:
                                     </p>
-                                    <button
-                                        className="btn btn-lg btn-block btn-primary"
-                                        style={{ backgroundColor: "#dd4b39" }}
-                                        type="button"
-                                    >
-                                        <i className="fab fa-google me-2" /> Sign in with Google
-                                    </button>
+                                        {/* <button className="btn btn-lg btn-primary" style={{ backgroundColor: "#dd4b39" }} type="button" > */}
+                                        {/* </button> */}
+                                    <div id="google-btn">
+                                            Sign in with Google
+                                    </div>
                                 </div>
                             </form>
                         </div>

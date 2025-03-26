@@ -33,10 +33,14 @@ module.exports = {
         defaultValue: 'Wishlist',
         type: Sequelize.STRING
       },
+      isComment: {
+        type: Sequelize.BOOLEAN
+      },
       comment: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
       rating: {
+        defaultValue: 0,
         type: Sequelize.INTEGER
       },
       createdAt: {

@@ -4,12 +4,12 @@ module.exports = class wishlistController {
     static async getWishlist(req, res, next) {
         try {
             const { userId } = req.body
-            let findWishlist = await Wishlist.findOne({ where: { userId, gameId } }, {
-                include: {
-                    model: Game
-                }
-            })
-            if (findWishlist) {
+            console.log('hello');
+            
+            let findWishlist = await Wishlist.findAll({ where: { userId } })
+            console.log(findWishlist);
+            
+            if (!findWishlist) {
                 throw {
                     name: "NotFound",
                     message: "Wishlist not found!"
@@ -34,6 +34,12 @@ module.exports = class wishlistController {
             }
             let findComment = await Wishlist.findOne({ where: { userId, gameId } })
             if (findComment) {
+                if (findComment.status === 'Bought') {
+                    throw {
+                        name: "BadRequest",
+                        message: "Game already bought!"
+                    }
+                }
                 throw {
                     name: "BadRequest",
                     message: "Wishlist already exists!"
@@ -126,6 +132,34 @@ module.exports = class wishlistController {
             }
             await Wishlist.update({ comment, rating }, { where: { userId, gameId } })
             res.status(200).json({ message: "Comment added!" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async eraseComment(req, res, next) {
+        try {
+            const { userId } = req.body
+            const { gameId } = req.params
+            let findComment = await Wishlist.findOne({ where: { userId, gameId } })
+            if (findComment) {
+                throw {
+                    name: "BadRequest",
+                    message: "Comment not found!"
+                }
+            }
+            await Wishlist.update({ comment: null, rating: 0 }, { where: { userId, gameId } })
+            res.status(200).json({ message: "Comment erased!" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getAllUserComment(req, res, next) {
+        try {
+            const { userId } = req.body
+            let comment = await Wishlist.findAll({ where: { userId } })
+            res.status(200).json(comment);
         } catch (error) {
             next(error);
         }

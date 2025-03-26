@@ -1,4 +1,4 @@
-const { Game, Wishlist } = require('../models');
+const { User, Game, Wishlist } = require('../models');
 
 module.exports = class gameController {
     static async getGames(req, res, next) {
@@ -15,9 +15,15 @@ module.exports = class gameController {
             const { gameId } = req.params
             const game = await Game.findByPk(gameId, {
                 include: {
-                    model: Wishlist
+                    model: Wishlist,
+                    where: { status: 'bought' },
+                    attributes: ['userId', 'comment', 'rating'],
+                    include: {
+                        model: User,
+                        attributes: ['username']
+                    }
                 }
-            })
+            });
             res.status(200).json(game)
         } catch (error) {
             next(error)

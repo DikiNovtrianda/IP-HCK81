@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { phase2IP } from "../../helpers/http-client";
-import Navbar from "../components/navbar";
 import CommentCard from "../components/CommentCard";
 import WriteCommentCard from "../components/writeCommentCard";
 
@@ -41,6 +40,65 @@ export default function DetailPage() {
         }
     }
 
+    const callOptionMenu = () => {
+        return (
+            <div className="d-flex justify-content-end align-items-center">
+                <div className="btn-group">
+                    {callBoughtMenu()}
+                    {/* {callWishlistMenu()} */}
+                    <button type="button" className="btn btn-md btn-outline-primary px-4" onClick={() => { navigate("/") }}>
+                        Back{" "}
+                    </button>
+                </div>
+            </div>
+        )
+    }
+    
+    const callWishlistMenu = () => {
+        if (localStorage.getItem('bearer_token')) {
+            return (
+                <button type="button" className="btn btn-md btn-outline-primary px-4" onClick={ createWishlist() }>
+                    Wishlist{" "}
+                </button>
+            )
+        }
+    }
+    
+    const callBoughtMenu = () => {
+        if (localStorage.getItem('bearer_token')) {
+            return (
+                <button type="button" className="btn btn-md btn-outline-success px-4" onClick={ createWishlist() }>
+                    Bought{" "}
+                </button>
+            )
+        }
+    }
+
+    const createWishlist = async () => {
+        try {
+            const { data } = await phase2IP.post(`/wishlist`, {
+                gameId: id
+            }, {
+                headers: {
+                    Authorization: localStorage.getItem('bearer_token')
+                }
+            });
+            console.log(data);
+            navigate('/wishlist');
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const callComment = () => {
+        if (games.Wishlists) {
+            let comments = games.Wishlists.map((comment, i) => {
+                return <CommentCard key={i} comment={comment}/>
+            })
+            return comments;
+        }
+    }
+
     useEffect(() => {
         getGameData();
     }, [])
@@ -75,18 +133,12 @@ export default function DetailPage() {
                       <p className="card-text small">Genre : <span className="text-primary">{renderBadges([games.genre1, games.genre2, games.genre3])}</span></p>
                       <p className="card-text small">Developer : <span className="text-primary">{renderBadges([games.developer1, games.developer2, games.developer3])}</span></p>
                       <p className="card-text small">Publisher : <span className="text-primary">{renderBadges([games.publisher1, games.publisher2, games.publisher3])}</span></p>
-                      {/* <div className="d-flex justify-content-end align-items-center">
-                        <div className="btn-group">
-                          <button type="button" className="btn btn-sm btn-outline-primary px-4" onClick={() => { navigate("/") }}>
-                            Back{" "}
-                          </button>
-                        </div>
-                      </div> */}
+                      {callOptionMenu()}
                       <hr />
                         <h3 className="card-text text-center my-3">Comments</h3>
                         <div className="row justify-content-center">
                             {/* fetch all comments */}
-                            <CommentCard />
+                            {callComment()}
                             {/* need authentication */}
                             {writeComment()}
                         </div>

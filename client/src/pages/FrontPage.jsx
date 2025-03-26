@@ -1,39 +1,42 @@
 import { useEffect, useState } from "react"
-import { phase2IP } from "../../helpers/http-client"
+import { useSelector, useDispatch } from "react-redux";
+// import { phase2IP } from "../../helpers/http-client"
 import GameCard from "../components/gameCard"
 import PageButton from "../components/PageButton"
-import Navbar from "../components/navbar"
+import { fetchGames, setSearch } from "../features/game/gameSlice";
 
 export default function FrontPage() {
-    const [games, setGames] = useState([])
+    const games = useSelector((state) => state.game.list.games);
+    const pages = useSelector((state) => state.game.list.pages);
+    const search = useSelector((state) => state.game.list.search);
+    const count = useSelector((state) => state.game.list.count);
+    const limit = useSelector((state) => state.game.list.limit);
+    const dispatch = useDispatch()
     const [htmlPages, setHtmlPages] = useState([]);
-    const [search, setSearch] = useState("")
-    const [pages, setPages] = useState(1)
-    const [limit, setLimit] = useState(0)
-    const [length, setLength] = useState(0)
-    const [count, setCount] = useState(0)
-
-    const getGameData = async () => {
-        try {
-            const {data} = await phase2IP.get('/public/games', {
-                params: {
-                    page: pages,
-                    search: search  
-                }
-            })
-            setGames(data.rows)
-            setCount(data.count)
-            setLimit(data.limit)
-            setLength(data.length)
-        } catch (error) {
-            console.log(error);
-        }
-    }
 
     const showPages = () => {
         let pageArray = []
-        for (let i = 1; i <= Math.ceil(count / limit); i++) {
-            pageArray.push(<PageButton key={i} pageNumber={i} currentPage={pages} setPages={setPages}/>)
+        const lastPage = Math.ceil(count / limit);
+        const minPageButton = pages - 2 < 1 ? 1 : pages - 2;
+        const maxPageButton = pages + 2 > lastPage ? lastPage : pages + 2;
+        if (minPageButton > 1) {
+            pageArray.push(<PageButton key={1} pageNumber={1} currentPage={pages}/>)
+            pageArray.push(
+                <div className="col-md-1 mb-3 px-4 text-center d-flex align-items-end pt-3">
+                    <span key="last" className="w-100 h-100">...</span>
+                </div>
+            )
+        }
+        for (let i = minPageButton; i <= maxPageButton; i++) {
+            pageArray.push(<PageButton key={i} pageNumber={i} currentPage={pages}/>)
+        }
+        if (maxPageButton < lastPage) {
+            pageArray.push(
+                <div className="col-md-1 mb-3 px-4 text-center d-flex align-items-end pt-3">
+                    <span key="last" className="w-100 h-100">...</span>
+                </div>
+            )
+            pageArray.push(<PageButton key={lastPage} pageNumber={ lastPage} currentPage={pages}/>)
         }
         setHtmlPages(pageArray);
     }
@@ -55,15 +58,10 @@ export default function FrontPage() {
             )
         }
     }
-    
-    useEffect(() => {
-        setPages(1);
-        getGameData();
-    }, [search])
 
     useEffect(() => {
-        getGameData();
-    }, [pages])
+        dispatch(fetchGames({ pages, search }))
+    }, [pages, search])
     
     useEffect(() => {
         showPages();
@@ -85,7 +83,7 @@ export default function FrontPage() {
                         id="search"
                         placeholder="Cari dengan nama..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => dispatch(setSearch(e.target.value))}
                         />
                     </div>
                 </form>
@@ -95,6 +93,10 @@ export default function FrontPage() {
                 <hr />
                 <div className="row justify-content-center">
                     {htmlPages}
+                </div>
+                <hr />
+                <div className="row mt-5">
+                    <p className="text-center text-body-tertiary" style={{ marginTop: 100 }}>*Created by <span className="text-dark">Diki Novtrianda</span> for Individual Project*</p>
                 </div>
             </div>
         </>
