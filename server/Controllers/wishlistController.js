@@ -4,7 +4,11 @@ module.exports = class wishlistController {
     static async getWishlist(req, res, next) {
         try {
             const { userId } = req.body
-            let findWishlist = await Wishlist.findOne({ where: { userId, gameId } })
+            let findWishlist = await Wishlist.findOne({ where: { userId, gameId } }, {
+                include: {
+                    model: Game
+                }
+            })
             if (findWishlist) {
                 throw {
                     name: "NotFound",

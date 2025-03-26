@@ -1,8 +1,8 @@
 const express = require("express");
 const { getGames, getDetailedGames, getPublicGames } = require("../Controllers/gameController");
-const { register, login } = require("../Controllers/userController");
+const { register, login } = require("../controllers/userController");
 const authentication = require("../middlewares/authentication");
-const { createWishlist, getWishlist, deleteWishlist, boughtWishlist, getComment, addComment } = require("../Controllers/wishlistController");
+const { createWishlist, getWishlist, deleteWishlist, boughtWishlist, getComment, addComment } = require("../controllers/wishlistController");
 const router = express.Router();
 
 router.post('/register', register)

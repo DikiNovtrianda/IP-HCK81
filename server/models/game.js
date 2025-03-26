@@ -14,9 +14,9 @@ module.exports = (sequelize, DataTypes) => {
       Game.hasMany(models.Wishlist, { foreignKey: 'gameId' })
     }
 
+
+
     static getPublicGames({ page, limit, search, sort, order, filter }) {
-      console.log(page, limit, search, sort, order, filter);
-      
       let option = {
         where: {}
       }
@@ -33,16 +33,12 @@ module.exports = (sequelize, DataTypes) => {
       }
       option.limit = limit
       option.offset = !page ? 0 : limit * (page - 1)
-
-      console.log(option);
-      
-
       return this.findAndCountAll(option)
     }
   }
   Game.init({
     name: DataTypes.STRING,
-    description: DataTypes.STRING,
+    description: DataTypes.TEXT,
     image: DataTypes.STRING,
     platform1: DataTypes.STRING,
     platform2: DataTypes.STRING,
