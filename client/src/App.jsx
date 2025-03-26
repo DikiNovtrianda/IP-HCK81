@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Navbar from './components/navbar'
 import { Provider } from 'react-redux'
+import Recommended from './pages/Recommended'
+import AuthenticationLayout from './layouts/AuthenticationLayout'
 
 function App() {
 
@@ -25,6 +27,9 @@ function App() {
               <Route path="/game/:id" element={<DetailPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/" element={<AuthenticationLayout />} >
+                <Route path="/games/recommended" element={<Recommended />} />
+              </Route>
             </Route>
           </Routes>
         </BrowserRouter>

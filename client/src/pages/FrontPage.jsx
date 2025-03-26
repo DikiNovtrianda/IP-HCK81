@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import GameCard from "../components/gameCard"
 import PageButton from "../components/PageButton"
 import { fetchGames, setSearch } from "../features/game/gameSlice";
+import { useNavigate } from "react-router";
 
 export default function FrontPage() {
     const games = useSelector((state) => state.game.list.games);
@@ -13,6 +14,7 @@ export default function FrontPage() {
     const limit = useSelector((state) => state.game.list.limit);
     const dispatch = useDispatch()
     const [htmlPages, setHtmlPages] = useState([]);
+    const navigate = useNavigate();
 
     const showPages = () => {
         let pageArray = []
@@ -72,6 +74,7 @@ export default function FrontPage() {
             <div className="jumbotron text-center py-5">
                 <h1>Welcome to Gameskuuy</h1>
                 <p>Selamat mencari permainan yang anda sukai!</p>
+                <p>Atau jika anda bingung, anda bisa bertanya langsung kepada AI <br /><button className="btn btn-outline-dark px-5 mt-3" onClick={() => navigate('/games/recommended')}>disini!</button></p>
             </div>
             <hr />
             <div className="container mt-4">

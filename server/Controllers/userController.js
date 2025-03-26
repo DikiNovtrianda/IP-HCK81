@@ -39,6 +39,45 @@ module.exports = class userController {
         }
     }
 
+    static async getUserDetail(req, res, next) {
+        try {
+            const userId = req.user.id;
+            let user = await User.findOne({
+                where: { id: userId },
+                attributes: { exclude: ['password'] }
+            })
+            res.status(200).json(user);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async userSetting(req, res, next) {
+        try {
+            const { preferedCategory, hatedCategory } = req.body;
+            const userId = req.user.id;
+            let user = await User.update(
+                { preferedCategory, hatedCategory },
+                { where: { id: userId }}
+            )
+            res.status(200).json({ message: "User preference has been updated!" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async eraseAccount(req, res, next) {
+        try {
+            const userId = req.user.id;
+            await User.destroy({
+                where: { id: userId }
+            })
+            res.status(200).json({ message: "Account has been deleted!" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async googleLogin(req, res, next) {
         try {
             const { googleToken } = req.body;
