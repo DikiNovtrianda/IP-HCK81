@@ -170,3 +170,55 @@ module.exports = class wishlistController {
         }
     }
 }
+
+describe("User Routes", () => {
+    test("POST /register - should register user", async () => {
+      User.create.mockResolvedValue(mockUser);
+      const res = await request(app).post("/register").send({ username: "testuser", email: "test@example.com", password: "password123" });
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty("username", "testuser");
+    });
+  
+    test("POST /login - should login user", async () => {
+      User.findOne.mockResolvedValue(mockUser);
+      comparePass.mockReturnValue(true);
+      const res = await request(app).post("/login").send({ username: "testuser", password: "password123" });
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty("token");
+    });
+  });
+  
+  describe("Game Routes", () => {
+    test("GET /games - should get all games", async () => {
+      Game.findAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+      const res = await request(app).get("/games");
+      expect(res.status).toBe(200);
+    });
+  
+    test("GET /games/:gameId - should get game details", async () => {
+      Game.findByPk.mockResolvedValue(null);
+      const res = await request(app).get("/games/1");
+      expect(res.status).toBe(200);
+    });
+  });
+  
+  describe("Wishlist Routes", () => {
+    test("POST /games/:gameId/wishlist - should add to wishlist", async () => {
+      Game.findOne.mockResolvedValue({ id: 1, name: "Test Game" });
+      Wishlist.findOne.mockResolvedValue(null);
+      Wishlist.create.mockResolvedValue({});
+      const res = await request(app)
+        .post("/games/1/wishlist")
+        .set("Authorization", `Bearer ${userToken}`);
+      expect(res.status).toBe(201);
+    });
+  
+    test("DELETE /games/:gameId/wishlist - should remove from wishlist", async () => {
+      Wishlist.findOne.mockResolvedValue({ id: 1 });
+      Wishlist.destroy.mockResolvedValue(1);
+      const res = await request(app)
+        .delete("/games/1/wishlist")
+        .set("Authorization", `Bearer ${userToken}`);
+      expect(res.status).toBe(200);
+    });
+  });
