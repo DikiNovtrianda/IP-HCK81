@@ -17,8 +17,8 @@ module.exports = class gameController {
             const game = await Game.findByPk(gameId, {
                 include: {
                     model: Wishlist,
-                    where: { status: 'bought' },
-                    attributes: ['userId', 'comment', 'rating'],
+                    where: { isComment: true },
+                    attributes: ['id', 'userId', 'comment', 'rating'],
                     include: {
                         model: User,
                         attributes: ['username']

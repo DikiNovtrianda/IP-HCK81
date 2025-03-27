@@ -1,10 +1,6 @@
 import { useEffect } from "react";
 
 export default function CommentCard({comment, userId}) {
-    useEffect(() => {
-        console.log(comment);
-    }, [])
-    
     const commentSetting = () => {
         if (comment.User.id === userId) {
             return (

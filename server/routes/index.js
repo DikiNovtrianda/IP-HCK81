@@ -1,8 +1,8 @@
 const express = require("express");
-const { getGames, getDetailedGames, getPublicGames, getAIRecommendation } = require("../Controllers/gameController");
+const { getGames, getDetailedGames, getPublicGames, getAIRecommendation } = require("../controllers/gameController");
 const { register, login, googleLogin, getUserDetail, userSetting, eraseAccount, getUser } = require("../controllers/userController");
 const authentication = require("../middlewares/authentication");
-const { createWishlist, getWishlist, deleteWishlist, boughtWishlist, getComment, addComment } = require("../controllers/wishlistController");
+const { createWishlist, getWishlist, deleteWishlist, boughtWishlist, getComment, addComment, getWishlistStatus } = require("../controllers/wishlistController");
 const router = express.Router();
 
 router.post('/login', login)

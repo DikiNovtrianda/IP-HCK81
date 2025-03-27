@@ -8,6 +8,9 @@ export default function DetailPage() {
     const [games, setGames] = useState({})
     const [userId, setUserId] = useState(0)
     const [username, setUsername] = useState('')
+    const [comCard, setComCard] = useState([])
+    const [wishlistStatus, setWishlistStatus] = useState(false);
+    const [commentStatus, setCommentStatus] = useState(false);
     const { id } = useParams();
     const navigate = useNavigate();
   
@@ -37,8 +40,8 @@ export default function DetailPage() {
     };
 
     const writeComment = () => {
-        if (localStorage.getItem('bearer_token')) {
-            return <WriteCommentCard gameId={id}/>
+        if (localStorage.getItem('bearer_token') && wishlistStatus === 'Bought' && commentStatus !== true) {
+            return <WriteCommentCard gameId={id} getGameData={getGameData}/>
         }
     }
 
@@ -47,7 +50,7 @@ export default function DetailPage() {
             <div className="d-flex justify-content-end align-items-center">
                 <div className="btn-group">
                     {callBoughtMenu()}
-                    {/* {callWishlistMenu()} */}
+                    {callWishlistMenu()}
                     <button type="button" className="btn btn-md btn-outline-primary px-4" onClick={() => { navigate("/") }}>
                         Back{" "}
                     </button>
@@ -58,52 +61,81 @@ export default function DetailPage() {
     
     const callWishlistMenu = () => {
         if (localStorage.getItem('bearer_token')) {
-            return (
-                <button type="button" className="btn btn-md btn-outline-primary px-4" onClick={ createWishlist() }>
-                    Wishlist{" "}
-                </button>
-            )
+            if (wishlistStatus === 'Wishlist') {
+                return (
+                    <button type="button" className="btn btn-md btn-danger px-4" disabled>
+                        Wishlisted{" "}
+                    </button>
+                )
+            } else if (wishlistStatus !== 'Bought') {
+                return (
+                    <button type="button" className="btn btn-md btn-outline-primary px-4" onClick={() => createWishlist() }>
+                        Wishlist{" "}
+                    </button>
+                )
+            }
         }
     }
     
     const callBoughtMenu = () => {
         if (localStorage.getItem('bearer_token')) {
-            return (
-                <button type="button" className="btn btn-md btn-outline-success px-4" onClick={ createWishlist() }>
-                    Bought{" "}
-                </button>
-            )
+            if (wishlistStatus === 'Bought') {
+                return (
+                    <button type="button" className="btn btn-md btn-success px-4" disabled>
+                        Already bought{" "}
+                    </button>
+                )
+            } else if (wishlistStatus === 'Wishlist') {
+                return (
+                    <button type="button" className="btn btn-md btn-outline-success px-4" onClick={() => boughtWishlist() }>
+                        Bought{" "}
+                    </button>
+                )
+            }
         }
     }
 
-    const createWishlist = async () => {
+    const boughtWishlist = async () => {
         try {
-            const { data } = await phase2IP.post(`/wishlist`, {
-                gameId: id
-            }, {
+            let { data } = await phase2IP.patch(`/wishlist/${id}/bought`,{} , {
                 headers: {
                     Authorization: localStorage.getItem('bearer_token')
                 }
             });
-            navigate('/wishlist');
+            findWishlistStatus()
+            console.log(data);
         } catch (error) {
             console.log(error);
         }
     }
 
-    const callComment = (userId) => {
+    const createWishlist = async () => {
+        try {
+            let { data } = await phase2IP.post(`/games/${games.id}/wishlist`,{} , {
+                headers: {
+                    Authorization: localStorage.getItem('bearer_token')
+                }
+            });
+            findWishlistStatus()
+            console.log(data);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const callComment = () => {
         if (games.Wishlists) {
-            let comments = games.Wishlists.map((comment, i) => {
-                return <CommentCard key={i} comment={comment} userId={userId}/>
+            let commentCard = [];
+            games.Wishlists.map((comment, i) => {
+                commentCard.push(<CommentCard key={i} comment={comment} userId={userId}/>)
             })
-            return comments;
+            setComCard(commentCard);
         }
     }
 
     const getLoginUser = async () => {
         try {
-            const { data } = await phase2IP.post(`/user`, 
-                { gameId: id }, 
+            const { data } = await phase2IP.get(`/user`,
                 {
                 headers: {
                     Authorization: localStorage.getItem('bearer_token')
@@ -116,10 +148,30 @@ export default function DetailPage() {
         }
     }
 
+    const findWishlistStatus = async () => {
+        try {
+            let { data } = await phase2IP.get(`/games/${id}/comment`, {
+                headers: {
+                    Authorization: localStorage.getItem('bearer_token')
+                }
+            });
+            setWishlistStatus(data.status);
+            setCommentStatus(data.isComment);
+        } catch (error) {
+            setWishlistStatus('none');
+            setCommentStatus('none');
+        }
+    }
+
     useEffect(() => {
         getGameData();
         getLoginUser();
     }, [])
+    
+    useEffect(() => {
+        findWishlistStatus()
+        callComment();
+    }, [games])
 
     return (
         <>
@@ -156,7 +208,7 @@ export default function DetailPage() {
                         <h3 className="card-text text-center my-3">Comments</h3>
                         <div className="row justify-content-center">
                             {/* fetch all comments */}
-                            {callComment(userId)}
+                            {comCard}
                             {/* need authentication */}
                             {writeComment()}
                         </div>

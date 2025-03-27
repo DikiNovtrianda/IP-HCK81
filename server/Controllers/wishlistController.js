@@ -3,15 +3,19 @@ const { Wishlist, Game } = require('../models');
 module.exports = class wishlistController {
     static async getWishlist(req, res, next) {
         try {
-            const { userId } = req.body
-            console.log('hello');
-            
-            let findWishlist = await Wishlist.findAll({ where: { userId } })
-            console.log(findWishlist);
-            
+            const userId = req.user.id;
+            let findWishlist = await Wishlist.findAll({
+                where: { userId },
+                include: [
+                    {
+                        model: Game,
+                        attributes: ['name'] // Specify the attributes you want from the Game model
+                    }
+                ]
+            });  
             if (!findWishlist) {
                 throw {
-                    name: "NotFound",
+                    name: "NotFound",   
                     message: "Wishlist not found!"
                 }
             }
@@ -23,7 +27,7 @@ module.exports = class wishlistController {
 
     static async createWishlist(req, res, next) {
         try {
-            const { userId } = req.body
+            const userId = req.user.id;
             const { gameId } = req.params
             let findGame = await Game.findOne({ where: { id: gameId } })
             if (!findGame) {
@@ -54,7 +58,7 @@ module.exports = class wishlistController {
 
     static async deleteWishlist(req, res, next) {
         try {
-            const { userId } = req.body
+            const userId = req.user.id;
             const { gameId } = req.params
             let findGame = await Game.findOne({ where: { id: gameId } })
             if (!findGame) {
@@ -64,7 +68,7 @@ module.exports = class wishlistController {
                 }
             }
             let findComment = await Wishlist.findOne({ where: { userId, gameId } })
-            if (findComment) {
+            if (!findComment) {
                 throw {
                     name: "NotFound",
                     message: "Wishlist not found!"
@@ -79,7 +83,7 @@ module.exports = class wishlistController {
 
     static async boughtWishlist(req, res, next) {
         try {
-            const { userId } = req.body
+            const userId = req.user.id;
             const { gameId } = req.params
             let findGame = await Game.findOne({ where: { id: gameId } })
             if (!findGame) {
@@ -104,10 +108,10 @@ module.exports = class wishlistController {
 
     static async getComment(req, res, next) {
         try {
-            const { userId, comment, rating } = req.body
+            const userId = req.user.id;
             const { gameId } = req.params
             let findComment = await Wishlist.findOne({ where: { userId, gameId } })
-            if (findComment) {
+            if (!findComment) {
                 throw {
                     name: "BadRequest",
                     message: "Comment not found!"
@@ -121,16 +125,17 @@ module.exports = class wishlistController {
 
     static async addComment(req, res, next) {
         try {
-            const { userId, comment, rating } = req.body
+            const userId = req.user.id;
+            const { comment, rating } = req.body
             const { gameId } = req.params
             let findComment = await Wishlist.findOne({ where: { userId, gameId } })
-            if (findComment) {
+            if (findComment.isComment) {
                 throw {
                     name: "BadRequest",
                     message: "Comment not found!"
                 }
             }
-            await Wishlist.update({ comment, rating }, { where: { userId, gameId } })
+            await Wishlist.update({ isComment: true ,comment, rating }, { where: { userId, gameId } })
             res.status(200).json({ message: "Comment added!" });
         } catch (error) {
             next(error);
@@ -139,7 +144,7 @@ module.exports = class wishlistController {
 
     static async eraseComment(req, res, next) {
         try {
-            const { userId } = req.body
+            const userId = req.user.id;
             const { gameId } = req.params
             let findComment = await Wishlist.findOne({ where: { userId, gameId } })
             if (findComment) {
@@ -157,7 +162,7 @@ module.exports = class wishlistController {
 
     static async getAllUserComment(req, res, next) {
         try {
-            const { userId } = req.body
+            const userId = req.user.id;
             let comment = await Wishlist.findAll({ where: { userId } })
             res.status(200).json(comment);
         } catch (error) {

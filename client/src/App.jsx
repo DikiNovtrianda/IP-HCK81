@@ -9,6 +9,7 @@ import { Provider } from 'react-redux'
 import Recommended from './pages/Recommended'
 import AuthenticationLayout from './layouts/AuthenticationLayout'
 import UserSetting from './pages/UserSetting'
+import Wishlist from './pages/Wishlist'
 
 function App() {
 
@@ -30,6 +31,7 @@ function App() {
               <Route path="/" element={<AuthenticationLayout />} >
                 <Route path="/games/recommended" element={<Recommended />} />
                 <Route path="/user/setting" element={<UserSetting />} />
+                <Route path="/wishlist" element={<Wishlist />} />
               </Route>
             </Route>
           </Routes>
