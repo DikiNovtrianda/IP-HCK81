@@ -10,6 +10,9 @@ export default function Navbar() {
                     <li className="nav-item">
                         <a onClick={() => navigate('/wishlist')} className="nav-link text-white bg-gradient btn btn-lg">Wishlist</a>
                     </li>
+                    <li className="nav-item">
+                        <a onClick={() => navigate('/user/setting')} className="nav-link text-white bg-gradient btn btn-lg ms-4">Setting</a>
+                    </li>
                     <Logout />
                 </>
             )

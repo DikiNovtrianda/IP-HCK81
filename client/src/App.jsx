@@ -8,6 +8,7 @@ import Navbar from './components/navbar'
 import { Provider } from 'react-redux'
 import Recommended from './pages/Recommended'
 import AuthenticationLayout from './layouts/AuthenticationLayout'
+import UserSetting from './pages/UserSetting'
 
 function App() {
 
@@ -17,18 +18,18 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route element={
-                <div>
-                  <Navbar />
-                  <Outlet />
-                </div>
-              }
-            >
+              <div>
+                <Navbar />
+                <Outlet />
+              </div>
+            }>
               <Route path="/" element={<FrontPage />} />
               <Route path="/game/:id" element={<DetailPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/" element={<AuthenticationLayout />} >
                 <Route path="/games/recommended" element={<Recommended />} />
+                <Route path="/user/setting" element={<UserSetting />} />
               </Route>
             </Route>
           </Routes>

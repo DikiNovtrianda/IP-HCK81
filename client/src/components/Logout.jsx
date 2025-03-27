@@ -11,7 +11,7 @@ export default function Logout() {
     return (
         <>
             <li className="nav-item">
-                <a onClick={() => logoutUser()} className="nav-link text-danger bg-gradient btn btn-lg ms-3">Logout</a>
+                <a onClick={() => logoutUser()} className="nav-link text-danger bg-gradient btn btn-lg ms-4">Logout</a>
             </li>
         </>
     )

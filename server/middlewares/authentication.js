@@ -4,6 +4,8 @@ const { User } = require('../models');
 module.exports = async function authentication(req, res, next) {
     try {
         const bearerToken = req.headers.authorization;
+        console.log(req.headers);
+        
         if (!bearerToken) {
             throw {
                 name: "Unauthorized",
@@ -25,6 +27,10 @@ module.exports = async function authentication(req, res, next) {
                 name: "Unauthorized",
                 message: "Unauthorized access"
             }
+        }
+        user = {
+            id: user.id,
+            username: user.username
         }
         req.user = user;
         next();

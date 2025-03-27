@@ -8,12 +8,22 @@ export default function Recommended() {
 
     const callsAIRecommendation = async () => {
         try {
-            let genre = 'action'
-            let degenre = 'ghost'
-            const { data } = await phase2IP.post(`/recommendation`, {
-                genre,
-                degenre
-            });
+            const user = await phase2IP.get(`/user/detail`, {
+                headers: {
+                    Authorization: localStorage.getItem('bearer_token')
+                }
+            })
+            console.log(user.data);
+            let preferedCategory = user.data.preferedCategory ? user.data.preferedCategory : 'none'
+            let hatedCategory = user.data.hatedCategory ? user.data.hatedCategory : 'none'
+            const { data } = await phase2IP.post(`/recommendation`, 
+                { preferedCategory, hatedCategory },
+                {
+                    headers: {
+                        Authorization: localStorage.getItem('bearer_token')
+                    }
+                }
+            );
             setGames(data.games)
             setComment(data.comment)
         } catch (error) {

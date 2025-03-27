@@ -6,6 +6,8 @@ import WriteCommentCard from "../components/writeCommentCard";
 
 export default function DetailPage() {
     const [games, setGames] = useState({})
+    const [userId, setUserId] = useState(0)
+    const [username, setUsername] = useState('')
     const { id } = useParams();
     const navigate = useNavigate();
   
@@ -83,24 +85,40 @@ export default function DetailPage() {
                     Authorization: localStorage.getItem('bearer_token')
                 }
             });
-            console.log(data);
             navigate('/wishlist');
         } catch (error) {
             console.log(error);
         }
     }
 
-    const callComment = () => {
+    const callComment = (userId) => {
         if (games.Wishlists) {
             let comments = games.Wishlists.map((comment, i) => {
-                return <CommentCard key={i} comment={comment}/>
+                return <CommentCard key={i} comment={comment} userId={userId}/>
             })
             return comments;
         }
     }
 
+    const getLoginUser = async () => {
+        try {
+            const { data } = await phase2IP.post(`/user`, 
+                { gameId: id }, 
+                {
+                headers: {
+                    Authorization: localStorage.getItem('bearer_token')
+                }
+            });
+            setUserId(data.id);
+            setUsername(data.username);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     useEffect(() => {
         getGameData();
+        getLoginUser();
     }, [])
 
     return (
@@ -138,7 +156,7 @@ export default function DetailPage() {
                         <h3 className="card-text text-center my-3">Comments</h3>
                         <div className="row justify-content-center">
                             {/* fetch all comments */}
-                            {callComment()}
+                            {callComment(userId)}
                             {/* need authentication */}
                             {writeComment()}
                         </div>
