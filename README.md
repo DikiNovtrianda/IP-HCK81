@@ -8,305 +8,308 @@ This project is a game management platform where users can browse games, manage 
 
 ## API Endpoints
 
-### **Authentication**
+### User Endpoints
 
-#### 1. **Login**
-   - **POST** `/login`
-   - **Description**: Logs in a user and returns a token.
-   - **Request Body**:
-     ```json
-     {
-       "username": "string",
-       "password": "string"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "token": "string"
-     }
-     ```
+#### POST `/register`
+- **Description**: Register a new user.
+- **Request Body**:
+  ```json
+  {
+    "username": "string",
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- **Response**:
+  - `201 Created`:
+    ```json
+    {
+      "username": "string",
+      "email": "string"
+    }
+    ```
+- **Error Responses**:
+  - `400 Bad Request`: Missing or invalid fields.
+  - `500 Internal Server Error`: Server error.
 
-#### 2. **Register**
-   - **POST** `/register`
-   - **Description**: Registers a new user.
-   - **Request Body**:
-     ```json
-     {
-       "username": "string",
-       "email": "string",
-       "password": "string"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "username": "string",
-       "email": "string"
-     }
-     ```
+#### POST `/login`
+- **Description**: Login a user.
+- **Request Body**:
+  ```json
+  {
+    "username": "string",
+    "password": "string"
+  }
+  ```
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "token": "string"
+    }
+    ```
+- **Error Responses**:
+  - `400 Bad Request`: Missing fields.
+  - `401 Unauthorized`: Invalid username or password.
+  - `500 Internal Server Error`: Server error.
 
-#### 3. **Google Login**
-   - **POST** `/google-login`
-   - **Description**: Logs in a user using Google OAuth.
-   - **Request Body**:
-     ```json
-     {
-       "googleToken": "string"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "token": "string"
-     }
-     ```
+#### GET `/user`
+- **Description**: Get user details.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "id": "number",
+      "username": "string"
+    }
+    ```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing or invalid token.
 
----
+#### POST `/user/addPreferences`
+- **Description**: Update user preferences.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Request Body**:
+  ```json
+  {
+    "preferedCategory": "string",
+    "hatedCategory": "string"
+  }
+  ```
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "User preference has been updated!"
+    }
+    ```
+- **Error Responses**:
+  - `400 Bad Request`: Missing or invalid preferences.
+  - `500 Internal Server Error`: Server error.
 
-### **User**
-
-#### 1. **Get User**
-   - **GET** `/user`
-   - **Description**: Retrieves the logged-in user's basic details.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "id": "integer",
-       "username": "string"
-     }
-     ```
-
-#### 2. **Get User Details**
-   - **GET** `/user/detail`
-   - **Description**: Retrieves detailed information about the logged-in user.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "id": "integer",
-       "username": "string",
-       "email": "string",
-       "preferedCategory": "string",
-       "hatedCategory": "string"
-     }
-     ```
-
-#### 3. **Update User Preferences**
-   - **POST** `/user/addPreferences`
-   - **Description**: Updates the user's preferred and hated game categories.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Request Body**:
-     ```json
-     {
-       "preferedCategory": "string",
-       "hatedCategory": "string"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "message": "User preference has been updated!"
-     }
-     ```
-
-#### 4. **Delete User**
-   - **DELETE** `/user/delete`
-   - **Description**: Deletes the logged-in user's account.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "message": "Account has been deleted!"
-     }
-     ```
+#### DELETE `/user/delete`
+- **Description**: Delete user account.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "Account has been deleted!"
+    }
+    ```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server error.
 
 ---
 
-### **Games**
+### Game Endpoints
 
-#### 1. **Get All Games**
-   - **GET** `/games`
-   - **Description**: Retrieves all games.
-   - **Response**:
-     ```json
-     {
-       "count": "integer",
-       "rows": [ ... ]
-     }
-     ```
+#### GET `/games`
+- **Description**: Get all games.
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "rows": [
+        {
+          "id": "number",
+          "name": "string",
+          "description": "string"
+        }
+      ],
+      "count": "number"
+    }
+    ```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server error.
 
-#### 2. **Get Public Games**
-   - **GET** `/public/games`
-   - **Description**: Retrieves paginated and filtered games.
-   - **Query Parameters**:
-     - `page`: Page number (optional)
-     - `search`: Search term (optional)
-     - `sort`: Sorting field (optional)
-     - `order`: Sorting order (asc/desc) (optional)
-     - `filter`: Genre filter (optional)
-   - **Response**:
-     ```json
-     {
-       "count": "integer",
-       "rows": [ ... ]
-     }
-     ```
+#### GET `/games/:gameId`
+- **Description**: Get detailed game by ID.
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "id": "number",
+      "name": "string",
+      "description": "string",
+      "wishlist": [
+        {
+          "id": "number",
+          "userId": "number",
+          "comment": "string",
+          "rating": "number",
+          "user": {
+            "username": "string"
+          }
+        }
+      ]
+    }
+    ```
+- **Error Responses**:
+  - `404 Not Found`: Game not found.
+  - `500 Internal Server Error`: Server error.
 
-#### 3. **Get Game Details**
-   - **GET** `/games/:gameId`
-   - **Description**: Retrieves detailed information about a specific game.
-   - **Response**:
-     ```json
-     {
-       "id": "integer",
-       "name": "string",
-       "description": "string",
-       "Wishlists": [ ... ]
-     }
-     ```
+#### GET `/public/games`
+- **Description**: Get public games with filters.
+- **Query Parameters**:
+  - `page`: Page number (optional).
+  - `search`: Search term (optional).
+  - `sort`: Sort field (optional).
+  - `order`: Sort order (asc/desc) (optional).
+  - `filter`: Filter by category (optional).
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "rows": [
+        {
+          "id": "number",
+          "name": "string",
+          "description": "string"
+        }
+      ],
+      "count": "number",
+      "page": "number",
+      "limit": "number",
+      "length": "number"
+    }
+    ```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server error.
 
-#### 4. **AI Recommendation**
-   - **POST** `/recommendation`
-   - **Description**: Retrieves AI-based game recommendations based on user preferences.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Request Body**:
-     ```json
-     {
-       "preferedCategory": "string",
-       "hatedCategory": "string"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "games": [ ... ],
-       "comment": "string"
-     }
-     ```
-
----
-
-### **Wishlist**
-
-#### 1. **Get Wishlist**
-   - **GET** `/wishlist`
-   - **Description**: Retrieves the logged-in user's wishlist.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     [ ... ]
-     ```
-
-#### 2. **Add to Wishlist**
-   - **POST** `/games/:gameId/wishlist`
-   - **Description**: Adds a game to the user's wishlist.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "message": "Wishlist created!"
-     }
-     ```
-
-#### 3. **Remove from Wishlist**
-   - **DELETE** `/games/:gameId/wishlist`
-   - **Description**: Removes a game from the user's wishlist.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "message": "Wishlist deleted!"
-     }
-     ```
-
-#### 4. **Mark as Bought**
-   - **PATCH** `/wishlist/:gameId/bought`
-   - **Description**: Marks a game in the wishlist as bought.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "message": "Game library added!"
-     }
-     ```
-
-#### 5. **Get Wishlist Comment**
-   - **GET** `/games/:gameId/comment`
-   - **Description**: Retrieves the user's comment for a specific game in the wishlist.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Response**:
-     ```json
-     {
-       "comment": "string",
-       "rating": "integer"
-     }
-     ```
-
-#### 6. **Add Comment**
-   - **POST** `/games/:gameId/comment`
-   - **Description**: Adds a comment and rating for a game in the wishlist.
-   - **Headers**: `Authorization: Bearer <token>`
-   - **Request Body**:
-     ```json
-     {
-       "comment": "string",
-       "rating": "integer"
-     }
-     ```
-   - **Response**:
-     ```json
-     {
-       "message": "Comment added!"
-     }
-     ```
+#### POST `/recommendation`
+- **Description**: Get AI-based game recommendations.
+- **Request Body**:
+  ```json
+  {
+    "genre": "string",
+    "degenre": "string"
+  }
+  ```
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "games": [
+        {
+          "id": "number",
+          "name": "string"
+        }
+      ],
+      "comment": "string"
+    }
+    ```
+- **Error Responses**:
+  - `404 Not Found`: No games available for recommendations.
+  - `400 Bad Request`: AI failed to generate recommendations.
+  - `500 Internal Server Error`: Server error.
 
 ---
 
-## Environment Variables
+### Wishlist Endpoints
 
-The following environment variables are required:
+#### GET `/wishlist`
+- **Description**: Get all wishlist items.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    [
+      {
+        "id": "number",
+        "userId": "number",
+        "gameId": "number",
+        "status": "string"
+      }
+    ]
+    ```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server error.
 
-- `JWT_SECRET`: Secret key for JWT.
-- `PORT`: Port number for the server.
-- `GIANTBOMB_API_KEY`: API key for GiantBomb.
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID.
-- `GEMINI_API_KEY`: API key for Google GenAI.
+#### POST `/games/:gameId/wishlist`
+- **Description**: Add a game to the wishlist.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `201 Created`:
+    ```json
+    {
+      "message": "Game added to wishlist!"
+    }
+    ```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid game ID.
+  - `500 Internal Server Error`: Server error.
 
-Refer to `.env.example` for more details.
+#### DELETE `/games/:gameId/wishlist`
+- **Description**: Remove a game from the wishlist.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "Game removed from wishlist!"
+    }
+    ```
+- **Error Responses**:
+  - `404 Not Found`: Wishlist item not found.
+  - `500 Internal Server Error`: Server error.
 
----
+#### PATCH `/wishlist/:wishlistId/bought`
+- **Description**: Mark a wishlist item as bought.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "Wishlist item marked as bought!"
+    }
+    ```
+- **Error Responses**:
+  - `404 Not Found`: Wishlist item not found.
+  - `500 Internal Server Error`: Server error.
 
-## Installation
+#### POST `/games/:gameId/comment`
+- **Description**: Add a comment to a wishlist item.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Request Body**:
+  ```json
+  {
+    "comment": "string",
+    "rating": "number"
+  }
+  ```
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "Comment added to wishlist item!"
+    }
+    ```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid comment or rating.
+  - `500 Internal Server Error`: Server error.
 
-1. Clone the repository.
-2. Navigate to the `server` and `client` directories and install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up the `.env` file in both `server` and `client` directories.
-4. Run the server:
-   ```bash
-   npm start
-   ```
-5. Run the client:
-   ```bash
-   npm run dev
-   ```
-
----
-
-## Testing
-
-Run the test suite using:
-```bash
-npm test
-```
-
----
-
-## License
-
-This project is licensed under the MIT License.
+#### GET `/games/:gameId/comment`
+- **Description**: Get a comment for a wishlist item.
+- **Headers**:
+  - `Authorization: Bearer <token>`
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "comment": "string",
+      "rating": "number"
+    }
+    ```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server error.
 
