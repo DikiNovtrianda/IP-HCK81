@@ -7,6 +7,12 @@ module.exports = class userController {
     static async register(req, res, next) {
         try {
             const { username, email, password } = req.body;
+            if (!username || !email || !password) {
+                throw {
+                    name: "BadRequest",
+                    message: "Username, Email or Password is empty!"
+                }
+            }
             let status = await User.create({ username, email, password })
             res.status(201).json({ username: status.username, email: status.email });
         } catch (error) {
@@ -33,6 +39,7 @@ module.exports = class userController {
                 }
             }
             let token = signToken({ id: user.id });
+            
             res.status(200).json({ token });
         } catch (error) {
             next(error);
@@ -42,19 +49,14 @@ module.exports = class userController {
     static async googleLogin(req, res, next) {
         try {
             const { googleToken } = req.body;
-
             const client = new OAuth2Client();
-
             const ticket = await client.verifyIdToken({
                 idToken: googleToken,
                 audience: process.env.GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
-            
             const [user] = await User.findOrCreate({
-                where: {
-                    email: payload.email
-                },
+                where: { email: payload.email },
                 defaults: {
                     username: payload.given_name + '#' + (Math.floor(Math.random() * 10000)),
                     email: payload.email,
@@ -71,12 +73,13 @@ module.exports = class userController {
     static async getUserDetail(req, res, next) {
         try {
             const userId = req.user.id;
-            console.log(req.user);
-            
             let user = await User.findOne({
                 where: { id: userId },
                 attributes: { exclude: ['password'] }
             })
+            if (!user) {
+                throw { name: "NotFound", message: "User not found!" };
+            }
             res.status(200).json(user);
         } catch (error) {
             next(error);
@@ -91,6 +94,9 @@ module.exports = class userController {
     static async userSetting(req, res, next) {
         try {
             const { preferedCategory, hatedCategory } = req.body;
+            if (!preferedCategory && !hatedCategory) {
+                throw { name: "BadRequest", message: "No preference provided!" };
+            }
             const userId = req.user.id;
             await User.update(
                 { preferedCategory, hatedCategory },
