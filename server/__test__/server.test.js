@@ -1,513 +1,586 @@
 const request = require("supertest");
-const app = require("../index"); // Adjust path if needed
+const app = require("../index");
 const { User, Game, Wishlist } = require("../models");
-const { signToken } = require("../helpers/jwt");
+const { signToken, verifyToken } = require("../helpers/jwt");
 const { comparePass } = require("../helpers/bcrypt");
+const { GoogleGenAI } = require("@google/genai");
 
-jest.mock("../models");
-jest.mock("../helpers/jwt", () => ({ signToken: jest.fn() }));
+jest.mock("../models", () => ({
+    User: {
+        create: jest.fn(),
+        findOne: jest.fn(),
+        findByPk: jest.fn(),
+        findAll: jest.fn(), // Add findAll for User
+        update: jest.fn(),
+        destroy: jest.fn(),
+    },
+    Wishlist: {
+        findAll: jest.fn(), // Add findAll for Wishlist
+        findOne: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        destroy: jest.fn(),
+    },
+    Game: {
+        findAndCountAll: jest.fn(),
+        findByPk: jest.fn(),
+        findAll: jest.fn(),
+        getPublicGames: jest.fn(),
+        findOne: jest.fn(), // Add findOne for Game
+    },
+}));
+jest.mock("../helpers/jwt", () => ({
+    signToken: jest.fn(),
+    verifyToken: jest.fn() // Mock verifyToken
+}));
 jest.mock("../helpers/bcrypt", () => ({ comparePass: jest.fn() }));
-jest.mock("../models");
+jest.mock("@google/genai");
 
 let userToken;
-let mockUser = { id: 1, username: "testuser", email: "test@example.com", password: "hashedpassword" };
-let userMock = {
-  id: 1,
-  username: "testuser",
-  email: "test@example.com",
-  password: "hashedpassword",
-  preferedCategory: "Action",
-  hatedCategory: "Horror",
-};
-
-let token = "testtoken";
+let mockUser = { id: 1, username: "testuser", email: "test@example.com", password: "password123" };
+let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzQ0Mjg3NzI1fQ.KSKbe_Jy_0joN28MJvS20dwYOyzZHDMMHGSNQnDBDj8";
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  signToken.mockReturnValue(token);
-  userToken = signToken({ id: mockUser.id });
+    jest.clearAllMocks();
+    signToken.mockReturnValue(token);
+    verifyToken.mockReturnValue({ id: mockUser.id });
+    User.findByPk.mockResolvedValue(mockUser);
+    userToken = signToken({ id: mockUser.id });
 });
 
-describe("Game API Tests", () => {
-  const mockGame = { id: 1, title: "Test Game", genre: "Action" };
-
-  it("should fetch all games", async () => {
-    db.Game.findAll.mockResolvedValue([mockGame]);
-
-    const res = await request(app).get("/games");
-    expect(res.statusCode).toBe(200);
-    expect(res.body.length).toBeGreaterThan(0);
-  });
-
-  it("should fetch a single game by ID", async () => {
-    db.Game.findByPk.mockResolvedValue(mockGame);
-
-    const res = await request(app).get("/games/1");
-    expect(res.statusCode).toBe(200);
-    expect(res.body.title).toBe("Test Game");
-  });
-
-  it("should return 404 if game not found", async () => {
-    db.Game.findByPk.mockResolvedValue(null);
-
-    const res = await request(app).get("/games/99");
-    expect(res.statusCode).toBe(404);
-  });
-
-  it("should create a new game", async () => {
-    db.Game.create.mockResolvedValue(mockGame);
-
-    const res = await request(app).post("/games").send(mockGame);
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty("id");
-  });
-
-  it("should return 400 for invalid game data", async () => {
-    const res = await request(app).post("/games").send({ title: "" });
-    expect(res.statusCode).toBe(400);
-  });
-
-  it("should delete a game", async () => {
-    db.Game.destroy.mockResolvedValue(1); // 1 means successful deletion
-
-    const res = await request(app).delete("/games/1");
-    expect(res.statusCode).toBe(200);
-  });
-
-  it("should return 404 when deleting non-existing game", async () => {
-    db.Game.destroy.mockResolvedValue(0); // 0 means nothing deleted
-
-    const res = await request(app).delete("/games/99");
-    expect(res.statusCode).toBe(404);
-  });
-
-  it("should return 401 for unauthorized game creation", async () => {
-    const res = await request(app).post("/games").send(mockGame);
-    expect(res.statusCode).toBe(401);
-  });
-
-  it("should return 500 for server error during game creation", async () => {
-    db.Game.create.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .post("/games")
-      .send(mockGame)
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.statusCode).toBe(500);
-  });
-});
-
-describe("User API Tests", () => {
-  const mockUser = { id: 1, username: "testuser", email: "test@example.com" };
-
-  it("should create a new user", async () => {
-    db.User.create.mockResolvedValue(mockUser);
-
-    const res = await request(app).post("/users").send(mockUser);
-    expect(res.statusCode).toBe(201);
-    expect(res.body.username).toBe("testuser");
-  });
-
-  it("should return 400 for invalid user data", async () => {
-    const res = await request(app).post("/users").send({ email: "" });
-    expect(res.statusCode).toBe(400);
-  });
-
-  it("should get user by ID", async () => {
-    db.User.findByPk.mockResolvedValue(mockUser);
-
-    const res = await request(app).get("/users/1");
-    expect(res.statusCode).toBe(200);
-    expect(res.body.username).toBe("testuser");
-  });
-
-  it("should return 404 if user not found", async () => {
-    db.User.findByPk.mockResolvedValue(null);
-
-    const res = await request(app).get("/users/99");
-    expect(res.statusCode).toBe(404);
-  });
-
-  it("should return 500 for server error during user creation", async () => {
-    db.User.create.mockRejectedValue(new Error("Server error"));
-    const res = await request(app).post("/users").send(mockUser);
-    expect(res.statusCode).toBe(500);
-  });
-
-  it("should return 401 for unauthorized user detail access", async () => {
-    const res = await request(app).get("/user/detail");
-    expect(res.statusCode).toBe(401);
-  });
-});
-
-describe("Wishlist API Tests", () => {
-  const mockWishlist = { id: 1, userId: 1, gameId: 2 };
-
-  it("should fetch all wishlists", async () => {
-    db.Wishlist.findAll.mockResolvedValue([mockWishlist]);
-
-    const res = await request(app).get("/wishlist");
-    expect(res.statusCode).toBe(200);
-    expect(res.body.length).toBeGreaterThan(0);
-  });
-
-  it("should add a game to wishlist", async () => {
-    db.Wishlist.create.mockResolvedValue(mockWishlist);
-
-    const res = await request(app).post("/wishlist").send(mockWishlist);
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty("id");
-  });
-
-  it("should return 400 for missing fields in wishlist", async () => {
-    const res = await request(app).post("/wishlist").send({});
-    expect(res.statusCode).toBe(400);
-  });
-
-  it("should delete a wishlist item", async () => {
-    db.Wishlist.destroy.mockResolvedValue(1);
-
-    const res = await request(app).delete("/wishlist/1");
-    expect(res.statusCode).toBe(200);
-  });
-
-  it("should return 404 when deleting non-existing wishlist item", async () => {
-    db.Wishlist.destroy.mockResolvedValue(0);
-
-    const res = await request(app).delete("/wishlist/99");
-    expect(res.statusCode).toBe(404);
-  });
-
-  it("should return 500 for server error during wishlist creation", async () => {
-    db.Wishlist.create.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .post("/wishlist")
-      .send(mockWishlist)
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.statusCode).toBe(500);
-  });
-
-  it("should return 401 for unauthorized wishlist access", async () => {
-    const res = await request(app).get("/wishlist");
-    expect(res.statusCode).toBe(401);
-  });
-});
 
 describe("User Controller Tests", () => {
-  test("POST /register - success", async () => {
-    User.create.mockResolvedValue(userMock);
+  test("should register a new user", async () => {
+    User.create.mockResolvedValue(mockUser);
     const res = await request(app).post("/register").send({
       username: "testuser",
       email: "test@example.com",
       password: "password123",
     });
-    expect(res.status).toBe(201);
-    expect(res.body).toHaveProperty("username", "testuser");
+    expect(res.statusCode).toBe(201);
+    expect(res.body.username).toBe("testuser");
   });
 
-  test("POST /login - success", async () => {
-    User.findOne.mockResolvedValue(userMock);
+  test("should return 400 for invalid registration data", async () => {
+    User.create.mockRejectedValue({ name: "ValidationError", message: "Invalid input" }); // Mock validation error
+    const res = await request(app).post("/register").send({
+        username: "",
+        email: "invalid-email",
+        password: "123",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username, Email or Password is empty!");
+  });
+
+  test("should return 500 for server error during registration", async () => {
+    User.create.mockRejectedValue(new Error("Internal server error")); // Simulate server error
+    const res = await request(app).post("/register").send({
+      username: "testuser",
+      email: "test@example.com",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 400 for missing fields during registration", async () => {
+    const res = await request(app).post("/register").send({
+      username: "",
+      email: "",
+      password: "",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username, Email or Password is empty!");
+  });
+
+  test("should return 400 for duplicate email during registration", async () => {
+    User.create.mockRejectedValue({
+      name: "SequelizeUniqueConstraintError",
+      errors: [{ message: "Email already exists" }],
+    }); // Simulate unique constraint error
+    const res = await request(app).post("/register").send({
+      username: "testuser",
+      email: "duplicate@example.com",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Email already exists");
+  });
+
+  test("should login a user", async () => {
+    User.findOne.mockResolvedValue(mockUser);
     comparePass.mockReturnValue(true);
     const res = await request(app).post("/login").send({
       username: "testuser",
       password: "password123",
     });
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("token", token);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.token).toBe(token);
   });
 
-  test("POST /login - invalid credentials", async () => {
+  test("should return 401 for invalid login credentials", async () => {
     User.findOne.mockResolvedValue(null);
     const res = await request(app).post("/login").send({
-      username: "wronguser",
-      password: "wrongpass",
+      username: "nonexistentuser",
+      password: "wrongpassword",
     });
-    expect(res.status).toBe(401);
+    expect(res.statusCode).toBe(401);
   });
 
-  test("GET /user/detail - success", async () => {
-    User.findOne.mockResolvedValue(userMock);
+  test("should return 500 for server error during login", async () => {
+    User.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate server error
+    const res = await request(app).post("/login").send({
+      username: "testuser",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 401 for incorrect password during login", async () => {
+    User.findOne.mockResolvedValue(mockUser);
+    comparePass.mockReturnValue(false); // Simulate incorrect password
+    const res = await request(app).post("/login").send({
+      username: "testuser",
+      password: "wrongpassword",
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Invalid Username/Password!");
+  });
+
+  test("should return user details", async () => {
+    User.findOne.mockResolvedValue(mockUser);
     const res = await request(app)
       .get("/user/detail")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("email", "test@example.com");
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.username).toBe("testuser");
   });
 
-  test("GET /user - success", async () => {
+  test("should return 404 for user not found in details", async () => {
+    User.findOne.mockResolvedValue(null); // User not found
     const res = await request(app)
-      .get("/user")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("username", "testuser");
+      .get("/user/detail")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(404);
   });
 
-  test("POST /user/addPreferences - success", async () => {
+  test("should return 500 for server error during user details retrieval", async () => {
+    User.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate server error
+    const res = await request(app)
+      .get("/user/detail")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 401 for missing token during user details retrieval", async () => {
+    const res = await request(app).get("/user/detail"); // No Authorization header
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Unauthorized access");
+  });
+
+  test("should return 401 for invalid token during user details retrieval", async () => {
+    verifyToken.mockImplementation(() => {
+      throw { name: "JsonWebTokenError", message: "Invalid token" };
+    }); // Simulate invalid token error
+    const res = await request(app)
+      .get("/user/detail")
+      .set("Authorization", "Bearer invalidtoken");
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Invalid token");
+  });
+
+  it("should update user preferences", async () => {
     User.update.mockResolvedValue([1]);
     const res = await request(app)
       .post("/user/addPreferences")
-      .send({ preferedCategory: "RPG", hatedCategory: "Horror" })
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("message", "User preference has been updated!");
+      .send({ preferedCategory: "Action", hatedCategory: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
   });
 
-  test("DELETE /user/delete - success", async () => {
+  it("should return 400 for invalid user preferences", async () => {
+    User.update.mockResolvedValue([0]); // Simulate no rows updated
+    const res = await request(app)
+      .post("/user/addPreferences")
+      .send({ preferedCategory: "", hatedCategory: "" }) // Invalid data
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("should return 500 for server error during user preferences update", async () => {
+    User.update.mockRejectedValue(new Error("Internal server error")); // Simulate server error
+    const res = await request(app)
+      .post("/user/addPreferences")
+      .send({ preferedCategory: "Action", hatedCategory: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  it("should delete a user account", async () => {
     User.destroy.mockResolvedValue(1);
     const res = await request(app)
       .delete("/user/delete")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("message", "Account has been deleted!");
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
   });
 
-  test("POST /login - server error", async () => {
-    User.findOne.mockRejectedValue(new Error("Server error"));
+  it("should handle errors when deleting a user account", async () => {
+    User.destroy.mockRejectedValue(new Error("Database error")); // Simulate error
+    const res = await request(app)
+      .delete("/user/delete")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  test("should return 500 for server error during user deletion", async () => {
+    User.destroy.mockRejectedValue(new Error("Internal server error")); // Simulate server error
+    const res = await request(app)
+      .delete("/user/delete")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 400 for missing username during registration", async () => {
+    const res = await request(app).post("/register").send({
+      username: "",
+      email: "test@example.com",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username, Email or Password is empty!");
+  });
+
+  test("should return 400 for missing password during login", async () => {
+    const res = await request(app).post("/login").send({
+      username: "testuser",
+      password: "",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username or Password is empty!");
+  });
+
+  test("should return 400 for missing username during login", async () => {
+    const res = await request(app).post("/login").send({
+      username: "",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username or Password is empty!");
+  });
+
+  test("should return 500 for unexpected error during user details retrieval", async () => {
+    User.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
+    const res = await request(app)
+      .get("/user/detail")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 500 for unexpected error during preferences update", async () => {
+    User.update.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
+    const res = await request(app)
+      .post("/user/addPreferences")
+      .send({ preferedCategory: "Action", hatedCategory: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 500 for unexpected error during user deletion", async () => {
+    User.destroy.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
+    const res = await request(app)
+      .delete("/user/delete")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 400 for empty request body during login", async () => {
+    const res = await request(app).post("/login").send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Username or Password is empty!");
+  });
+
+  test("should return 500 for unexpected error during registration", async () => {
+    User.create.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
+    const res = await request(app).post("/register").send({
+      username: "testuser",
+      email: "test@example.com",
+      password: "password123",
+    });
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return 500 for unexpected error during login", async () => {
+    User.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
     const res = await request(app).post("/login").send({
       username: "testuser",
       password: "password123",
     });
-    expect(res.status).toBe(500);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
   });
 
-  test("GET /user/detail - server error", async () => {
-    User.findOne.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .get("/user/detail")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(500);
-  });
-
-  test("POST /register - invalid data", async () => {
-    User.create.mockRejectedValue(new Error("Validation error"));
-    const res = await request(app).post("/register").send({
-      username: "",
-      email: "invalid-email",
-      password: "short",
-    });
-    expect(res.status).toBe(400);
-  });
-
-  test("POST /login - missing fields", async () => {
-    const res = await request(app).post("/login").send({
-      username: "",
-      password: "",
-    });
-    expect(res.status).toBe(400);
-  });
-
-  test("GET /user/detail - unauthorized access", async () => {
-    const res = await request(app).get("/user/detail");
-    expect(res.status).toBe(401);
-  });
-
-  test("POST /user/addPreferences - invalid data", async () => {
-    User.update.mockResolvedValue([0]); // No rows updated
+  test("should return 400 for invalid category values during preferences update", async () => {
     const res = await request(app)
       .post("/user/addPreferences")
-      .send({ preferedCategory: "", hatedCategory: "" })
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(400);
-  });
-
-  test("DELETE /user/delete - unauthorized access", async () => {
-    const res = await request(app).delete("/user/delete");
-    expect(res.status).toBe(401);
-  });
-});
-
-describe("User Routes", () => {
-  test("POST /register - should register user", async () => {
-    User.create.mockResolvedValue(mockUser);
-    const res = await request(app).post("/register").send({ username: "testuser", email: "test@example.com", password: "password123" });
-    expect(res.status).toBe(201);
-    expect(res.body).toHaveProperty("username", "testuser");
-  });
-
-  test("POST /login - should login user", async () => {
-    User.findOne.mockResolvedValue(mockUser);
-    comparePass.mockReturnValue(true);
-    const res = await request(app).post("/login").send({ username: "testuser", password: "password123" });
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("token");
-  });
-});
-
-describe("Game Routes", () => {
-  test("GET /games - should get all games", async () => {
-    Game.findAndCountAll.mockResolvedValue({ rows: [], count: 0 });
-    const res = await request(app).get("/games");
-    expect(res.status).toBe(200);
-  });
-
-  test("GET /games/:gameId - should get game details", async () => {
-    Game.findByPk.mockResolvedValue(null);
-    const res = await request(app).get("/games/1");
-    expect(res.status).toBe(200);
-  });
-
-  test("GET /games/:gameId - server error", async () => {
-    Game.findByPk.mockRejectedValue(new Error("Server error"));
-    const res = await request(app).get("/games/1");
-    expect(res.status).toBe(500);
-  });
-
-  test("POST /games - missing fields", async () => {
-    const res = await request(app)
-      .post("/games")
-      .send({ title: "" })
+      .send({ preferedCategory: "", hatedCategory: "" }) // Invalid values
       .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("No preference provided!");
   });
 
-  test("DELETE /games/:id - unauthorized access", async () => {
-    const res = await request(app).delete("/games/1");
-    expect(res.status).toBe(401);
-  });
-
-  test("GET /games/:id - invalid ID format", async () => {
-    const res = await request(app).get("/games/invalid-id");
-    expect(res.status).toBe(400);
-  });
-});
-
-describe("Wishlist Routes", () => {
-  test("POST /games/:gameId/wishlist - should add to wishlist", async () => {
-    Game.findOne.mockResolvedValue({ id: 1, name: "Test Game" });
-    Wishlist.findOne.mockResolvedValue(null);
-    Wishlist.create.mockResolvedValue({});
-    const res = await request(app)
-      .post("/games/1/wishlist")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(201);
-  });
-
-  test("DELETE /games/:gameId/wishlist - should remove from wishlist", async () => {
-    Wishlist.findOne.mockResolvedValue({ id: 1 });
-    Wishlist.destroy.mockResolvedValue(1);
-    const res = await request(app)
-      .delete("/games/1/wishlist")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(200);
-  });
-
-  test("POST /games/:gameId/wishlist - server error", async () => {
-    Wishlist.create.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .post("/games/1/wishlist")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
-  });
-
-  test("DELETE /games/:gameId/wishlist - server error", async () => {
-    Wishlist.destroy.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .delete("/games/1/wishlist")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
-  });
-
-  test("POST /wishlist - duplicate entry", async () => {
-    Wishlist.findOne.mockResolvedValue({ id: 1 });
-    const res = await request(app)
-      .post("/wishlist")
-      .send({ userId: 1, gameId: 2 })
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(400);
-  });
-
-  test("DELETE /wishlist/:id - invalid ID format", async () => {
-    const res = await request(app)
-      .delete("/wishlist/invalid-id")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(400);
-  });
-
-  test("GET /wishlist - unauthorized access", async () => {
-    const res = await request(app).get("/wishlist");
-    expect(res.status).toBe(401);
-  });
-});
-
-describe("Game Controller Additional Tests", () => {
-  test("PUT /games/:id - should update a game", async () => {
-    Game.update.mockResolvedValue([1]); // 1 means successful update
-    const res = await request(app)
-      .put("/games/1")
-      .send({ title: "Updated Game" })
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("message", "Game updated successfully!");
-  });
-
-  test("PUT /games/:id - game not found", async () => {
-    Game.update.mockResolvedValue([0]); // 0 means no rows updated
-    const res = await request(app)
-      .put("/games/99")
-      .send({ title: "Updated Game" })
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(404);
-  });
-
-  test("PUT /games/:id - server error", async () => {
-    Game.update.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .put("/games/1")
-      .send({ title: "Updated Game" })
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
-  });
-});
-
-describe("User Controller Additional Tests", () => {
-  test("GET /user - server error", async () => {
-    User.findOne.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .get("/user")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(500);
-  });
-
-  test("POST /user/addPreferences - server error", async () => {
-    User.update.mockRejectedValue(new Error("Server error"));
+  test("should return 500 for unexpected error during preferences update", async () => {
+    User.update.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
     const res = await request(app)
       .post("/user/addPreferences")
-      .send({ preferedCategory: "RPG", hatedCategory: "Horror" })
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(500);
+      .send({ preferedCategory: "Action", hatedCategory: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
   });
 
-  test("DELETE /user/delete - server error", async () => {
-    User.destroy.mockRejectedValue(new Error("Server error"));
+  test("should return 500 for unexpected error during user deletion", async () => {
+    User.destroy.mockRejectedValue(new Error("Internal server error")); // Simulate unexpected error
     const res = await request(app)
       .delete("/user/delete")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(500);
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe("Internal server error");
+  });
+
+  test("should return user details from getUser", async () => {
+    const mockUser = { id: 1, username: "testuser" };
+    const res = await request(app)
+      .get("/user")
+      .set("Authorization", `Bearer ${userToken}`); // Simulate authenticated request
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual(mockUser);
   });
 });
 
-describe("Wishlist Controller Additional Tests", () => {
-  test("POST /wishlist - server error", async () => {
-    Wishlist.create.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .post("/wishlist")
-      .send({ userId: 1, gameId: 2 })
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
+describe("Game Controller Tests", () => {
+  const mockGame = { id: 1, name: "Test Game", description: "Test Description" };
+
+  it("should fetch all games", async () => {
+    Game.findAndCountAll.mockResolvedValue({ rows: [mockGame], count: 1 });
+    const res = await request(app).get("/games");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.count).toBe(1);
   });
 
-  test("DELETE /wishlist/:id - server error", async () => {
-    Wishlist.destroy.mockRejectedValue(new Error("Server error"));
-    const res = await request(app)
-      .delete("/wishlist/1")
-      .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
+  it("should fetch detailed game by ID", async () => {
+    Game.findByPk.mockResolvedValue(mockGame);
+    const res = await request(app).get("/games/1");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe("Test Game");
   });
 
-  test("GET /wishlist - server error", async () => {
-    Wishlist.findAll.mockRejectedValue(new Error("Server error"));
+  it("should return 404 if game not found", async () => {
+    Game.findByPk.mockResolvedValue(null);
+    const res = await request(app).get("/games/99");
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("should return 404 when fetching a game with an invalid ID", async () => {
+    Game.findByPk.mockResolvedValue(null); // Simulate game not found
+    const res = await request(app).get("/games/999");
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("should fetch public games with filters", async () => {
+    Game.getPublicGames.mockResolvedValue({ rows: [mockGame], count: 1 });
+    const res = await request(app).get("/public/games").query({ search: "Test" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.count).toBe(1);
+  });
+
+  it("should handle errors when fetching public games", async () => {
+    Game.getPublicGames.mockRejectedValue(new Error("Database error")); // Simulate error
+    const res = await request(app).get("/public/games");
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should return AI recommendations", async () => {
+    Game.findAll.mockResolvedValue([{ id: 1, name: "Test Game", genre1: "Action" }]);
+    const mockAIResponse = {
+      text: "1,2,3|||Ini adalah rekomendasi dari AI."
+    };
+    GoogleGenAI.mockImplementation(() => ({
+      models: {
+        generateContent: jest.fn().mockResolvedValue(mockAIResponse)
+      }
+    }));
+
+    const res = await request(app)
+      .post("/recommendation")
+      .send({ genre: "Action", degenre: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.games.length).toBe(3);
+    expect(res.body.comment).toBe("Ini adalah rekomendasi dari AI.");
+  });
+
+  it("should return 500 for internal server error in game recommendation", async () => {
+    Game.findAll.mockRejectedValue(new Error("Internal server error"));
+    const res = await request(app)
+      .post("/recommendation")
+      .send({ genre: "Action", degenre: "Horror" })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+});
+
+describe("Wishlist Controller Tests", () => {
+  const mockWishlist = { id: 1, userId: 1, gameId: 1, status: "Wishlist" };
+
+  it("should fetch all wishlists", async () => {
+    Wishlist.findAll.mockResolvedValue([mockWishlist]);
     const res = await request(app)
       .get("/wishlist")
       .set("Authorization", `Bearer ${userToken}`);
-    expect(res.status).toBe(500);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.length).toBe(1);
+  });
+
+  it("should return 500 for internal server error when fetching wishlist", async () => {
+    Wishlist.findAll.mockRejectedValue(new Error("Internal server error"));
+    const res = await request(app)
+      .get("/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should add a game to wishlist", async () => {
+    Game.findOne.mockResolvedValue({ id: 1 });
+    Wishlist.findOne.mockResolvedValue(null);
+    Wishlist.create.mockResolvedValue(mockWishlist);
+    const res = await request(app)
+      .post("/games/1/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("should return 400 when adding a game to wishlist with invalid data", async () => {
+    Game.findOne.mockResolvedValue(null);
+    const res = await request(app)
+      .post("/games/1/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("should return 500 when an error occurs while adding a game to wishlist", async () => {
+    Game.findOne.mockResolvedValue({ id: 1 });
+    Wishlist.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate error
+    const res = await request(app)
+      .post("/games/1/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should delete a wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist); // Ensure findOne returns the mockWishlist
+    Wishlist.destroy.mockResolvedValue(1); // Ensure destroy returns 1 (success)
+
+    const res = await request(app)
+        .delete("/games/1/wishlist")
+        .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("should return 404 when deleting a non-existent wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue(null); // Wishlist item not found
+    const res = await request(app)
+      .delete("/games/1/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("should return 500 when an error occurs while deleting a wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist);
+    Wishlist.destroy.mockRejectedValue(new Error("Internal server error")); // Simulate error
+    const res = await request(app)
+      .delete("/games/1/wishlist")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should mark a wishlist item as bought", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist);
+    Wishlist.update.mockResolvedValue([1]);
+    const res = await request(app)
+      .patch("/wishlist/1/bought")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("should return 500 when an error occurs while marking a wishlist item as bought", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist);
+    Wishlist.update.mockRejectedValue(new Error("Internal server error")); // Simulate error
+    const res = await request(app)
+      .patch("/wishlist/1/bought")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should add a comment to a wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue({ ...mockWishlist, isComment: false });
+    Wishlist.update.mockResolvedValue([1]);
+    const res = await request(app)
+      .post("/games/1/comment")
+      .send({ comment: "Great game!", rating: 5 })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("should return 400 for invalid wishlist comment data", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist);
+    Wishlist.update.mockRejectedValue(new Error("Validation error"));
+    const res = await request(app)
+      .post("/games/1/comment")
+      .send({ comment: "", rating: 10 }) // Invalid comment and rating
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("should return 500 when an error occurs while adding a comment to a wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue(mockWishlist);
+    Wishlist.update.mockRejectedValue(new Error("Internal server error")); // Simulate error
+    const res = await request(app)
+      .post("/games/1/comment")
+      .send({ comment: "Great game!", rating: 5 })
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("should fetch a comment for a wishlist item", async () => {
+    Wishlist.findOne.mockResolvedValue({ ...mockWishlist, comment: "Great game!", rating: 5 });
+    const res = await request(app)
+      .get("/games/1/comment")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.comment).toBe("Great game!");
+  });
+
+  it("should return 500 when an error occurs while fetching a wishlist comment", async () => {
+    Wishlist.findOne.mockRejectedValue(new Error("Internal server error")); // Simulate error
+    const res = await request(app)
+      .get("/games/1/comment")
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(res.statusCode).toBe(500);
+  });
+});
+
+describe("Authentication Middleware Tests", () => {
+  it("should return 401 if no authorization header is provided", async () => {
+    const res = await request(app).get("/user/detail"); // No Authorization header
+    expect(res.statusCode).toBe(401);
   });
 });
