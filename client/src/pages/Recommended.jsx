@@ -17,7 +17,7 @@ export default function Recommended() {
             let preferedCategory = user.data.preferedCategory ? user.data.preferedCategory : 'none'
             let hatedCategory = user.data.hatedCategory ? user.data.hatedCategory : 'none'
             const { data } = await phase2IP.post(`/recommendation`, 
-                { preferedCategory, hatedCategory },
+                { genre: preferedCategory, degenre: hatedCategory },
                 {
                     headers: {
                         Authorization: localStorage.getItem('bearer_token')
